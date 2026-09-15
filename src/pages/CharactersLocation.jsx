@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 function CharactersLocation() {
-  const [locations, setLocations] = useState({});
-
-  useEffect(() => {
-    const savedData = JSON.parse(localStorage.getItem('locations')) || {};
-    setLocations(savedData);
-  }, []);
+  const [locations] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('locations')) || {};
+    } catch {
+      return {};
+    }
+  });
 
   const locationNames = Object.keys(locations);
 

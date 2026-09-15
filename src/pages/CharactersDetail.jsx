@@ -1,17 +1,34 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useQuery } from '@apollo/client/react';
 import { useState } from 'react';
 import { GET_CHARACTER_DETAIL } from '../services/CharacterData';
 
 function CharacterDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [locationName, setLocationName] = useState('');
   const [message, setMessage] = useState('');
 
   const { loading, error, data } = useQuery(GET_CHARACTER_DETAIL, {
     variables: { id }
   });
+
+  const handleRemoveAssign = () => {
+    const savedData = JSON.parse(localStorage.getItem('locations')) || {};
+    const charId = data.character.id;
+
+    for (const loc in savedData) {
+      const found = savedData[loc].some(c => c.id === charId);
+      if (found) {
+        savedData[loc] = savedData[loc].filter(c => c.id !== charId);
+        if (savedData[loc].length === 0) {
+          delete savedData[loc];
+        }
+        localStorage.setItem('locations', JSON.stringify(savedData));
+        window.location.reload();
+        return;
+      }
+    }
+  };
 
   const handleAssign = () => {
     if (locationName === '') {
@@ -22,23 +39,28 @@ function CharacterDetail() {
     const savedData = localStorage.getItem('locations');
     const savedLocations = JSON.parse(savedData) || {};
 
+    const charId = data.character.id;
+
+    for (const loc in savedLocations) {
+      const found = savedLocations[loc].some(item => item.id === charId);
+      if (found) {
+        alert(`Karakter ini sudah ada di lokasi "${loc}"!`);
+        return;
+      }
+    }
+
     if (!savedLocations[locationName]) {
       savedLocations[locationName] = [];
     }
 
-    const assigned = savedLocations[locationName].some(item => item.id === data.character.id);
+    savedLocations[locationName].push({
+      id: charId,
+      name: data.character.name
+    });
 
-    if (assigned) {
-      setMessage('Character is already assigned in other location.');
-    } else {
-      savedLocations[locationName].push({
-        id: data.character.id,
-        name: data.character.name
-      });
-      localStorage.setItem('locations', JSON.stringify(savedLocations));
-      setMessage('Success');
-      setLocationName('');
-    }
+    localStorage.setItem('locations', JSON.stringify(savedLocations));
+    setMessage('Success');
+    setLocationName('');
   };
 
   if (loading) return <p>Loading...</p>;
@@ -73,18 +95,37 @@ function CharacterDetail() {
         </p>
       </div>
 
-      <hr />
+<hr />
 
-      <div>
-        <h3>Assign new location</h3>
-        <input 
-          type="text" 
-          value={locationName}
-          onChange={(e) => setLocationName(e.target.value)}
-        />
-        <button onClick={handleAssign}>Save</button>
-        <p>{message}</p>
-        <button onClick={() => navigate(-1)}>Back</button>
+      <div style={{ border: '1px solid #dee2e6', borderRadius: '8px', padding: '20px', margin: '0 auto', marginBottom: '20px', backgroundColor: '#f8f9fa', maxWidth: '400px' }}>
+        <h3 style={{ margin: '0 0 15px', fontSize: '14px', color: '#555' }}>Assign new location</h3>
+
+        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px', color: '#333' }}>Location Name:</label>
+
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '12px' }}>
+          <input 
+            type="text" 
+            value={locationName} 
+            onChange={(e) => setLocationName(e.target.value)}
+            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ced4da', fontSize: '14px' }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          {savedLocation !== "" && (
+            <button 
+              onClick={handleRemoveAssign} 
+              style={{ padding: '8px 16px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', fontSize: '14px', cursor: 'pointer' }}
+            >
+              Delete Location
+            </button>
+          )}
+          <button onClick={handleAssign} style={{ padding: '8px 16px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', fontSize: '14px', cursor: 'pointer' }}>Save</button>
+        </div>
+
+        <p style={{ margin: '10px 0', fontSize: '13px', color: message.includes('Berhasil') ? '#28a745' : '#dc3545', fontWeight: '500' }}>
+          {message}
+        </p>
       </div>
     </div>
   );
